@@ -408,7 +408,11 @@ namespace NuGetGallery
 
         public static string LogOff(this UrlHelper url, bool relativeUrl = true)
         {
-            string returnUrl = url.Current();
+            return LogOff(url, url.Current(), relativeUrl);
+        }
+
+        public static string LogOff(this UrlHelper url, string returnUrl, bool relativeUrl = true)
+        {
             // If we're logging off from the Admin Area, don't set a return url
             if (string.Equals(url.RequestContext.RouteData.DataTokens[Area].ToStringOrNull(), AdminAreaRegistration.Name, StringComparison.OrdinalIgnoreCase))
             {
@@ -728,6 +732,11 @@ namespace NuGetGallery
             return GetActionLink(url, "ApiKeys", "Users", relativeUrl);
         }
 
+        public static string ManageMyOrganizations(this UrlHelper url, bool relativeUrl = true)
+        {
+            return GetActionLink(url, "Organizations", "Users", relativeUrl);
+        }
+
         public static string ManageMyPackages(this UrlHelper url, bool relativeUrl = true)
         {
             return GetActionLink(url, "Packages", "Users", relativeUrl);
@@ -884,7 +893,7 @@ namespace NuGetGallery
             return GetActionLink(url, "Contact", "Pages", relativeUrl);
         }
 
-        public static string ContactOwners(this UrlHelper url, string id, bool relativeUrl = true)
+        public static string ContactOwners(this UrlHelper url, string id, string version, bool relativeUrl = true)
         {
             return GetActionLink(
                 url,
@@ -893,7 +902,8 @@ namespace NuGetGallery
                 relativeUrl,
                 routeValues: new RouteValueDictionary
                 {
-                    { "id", id }
+                    { "id", id },
+                    { "version", version }
                 });
         }
 
@@ -969,6 +979,20 @@ namespace NuGetGallery
         public static string GenerateApiKey(this UrlHelper url, bool relativeUrl = true)
         {
             return GetActionLink(url, "GenerateApiKey", "Users", relativeUrl);
+        }
+
+        public static string ConfirmTransformAccount(this UrlHelper url, User accountToTransform, bool relativeUrl = true)
+        {
+            return GetActionLink(
+                url,
+                "ConfirmTransform",
+                "Users",
+                relativeUrl,
+                routeValues: new RouteValueDictionary
+                {
+                    { "accountNameToTransform", accountToTransform.Username },
+                    { "token", accountToTransform.OrganizationMigrationRequest.ConfirmationToken }
+                });
         }
 
         private static UriBuilder GetCanonicalUrl(UrlHelper url)
