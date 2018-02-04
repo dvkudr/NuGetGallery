@@ -1,7 +1,9 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure.Annotations;
 using System.Threading.Tasks;
 
 namespace NuGetGallery
@@ -10,6 +12,8 @@ namespace NuGetGallery
     public class EntitiesContext
         : ObjectMaterializedInterceptingDbContext, IEntitiesContext
     {
+        private const string CertificatesThumbprintIndex = "IX_Certificates_Thumbprint";
+
         static EntitiesContext()
         {
             // Don't run migrations, ever!
@@ -43,6 +47,7 @@ namespace NuGetGallery
         public IDbSet<Scope> Scopes { get; set; }
         public IDbSet<UserSecurityPolicy> UserSecurityPolicies { get; set; }
         public IDbSet<ReservedNamespace> ReservedNamespaces { get; set; }
+        public IDbSet<Certificate> Certificates { get; set; }
 
         /// <summary>
         /// User or organization accounts.
@@ -74,9 +79,9 @@ namespace NuGetGallery
             ObjectContext.CommandTimeout = seconds;
         }
 
-        public Database GetDatabase()
+        public IDatabase GetDatabase()
         {
-            return Database;
+            return new DatabaseWrapper(Database);
         }
 
 #pragma warning disable 618 // TODO: remove Package.Authors completely once production services definitely no longer need it
@@ -135,17 +140,39 @@ namespace NuGetGallery
             modelBuilder.Entity<Membership>()
                 .HasKey(m => new { m.OrganizationKey, m.MemberKey });
 
+            modelBuilder.Entity<MembershipRequest>()
+                .HasKey(m => new { m.OrganizationKey, m.NewMemberKey });
+
+            modelBuilder.Entity<OrganizationMigrationRequest>()
+                .HasKey(m => m.NewOrganizationKey);
+
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Organizations)
                 .WithRequired(m => m.Member)
                 .HasForeignKey(m => m.MemberKey)
                 .WillCascadeOnDelete(true); // Membership will be deleted with the Member account.
 
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.OrganizationRequests)
+                .WithRequired(m => m.NewMember)
+                .HasForeignKey(m => m.NewMemberKey)
+                .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<User>()
+                .HasOptional(u => u.OrganizationMigrationRequest)
+                .WithRequired(m => m.NewOrganization);
+
             modelBuilder.Entity<Organization>()
                 .HasMany(o => o.Members)
                 .WithRequired(m => m.Organization)
                 .HasForeignKey(m => m.OrganizationKey)
                 .WillCascadeOnDelete(true); // Memberships will be deleted with the Organization account.
+
+            modelBuilder.Entity<Organization>()
+                .HasMany(o => o.MemberRequests)
+                .WithRequired(m => m.Organization)
+                .HasForeignKey(m => m.OrganizationKey)
+                .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<Role>()
                 .HasKey(u => u.Key);
@@ -261,6 +288,7 @@ namespace NuGetGallery
 
             modelBuilder.Entity<PackageFramework>()
                 .HasKey(pf => pf.Key);
+
             modelBuilder.Entity<CuratedFeed>()
                 .HasKey(cf => cf.Key);
 
@@ -288,14 +316,31 @@ namespace NuGetGallery
                     .WithOptional();
 
             modelBuilder.Entity<AccountDelete>()
-           .HasKey(a => a.Key)
-           .HasRequired(a => a.DeletedAccount);
+                .HasKey(a => a.Key)
+                .HasRequired(a => a.DeletedAccount);
 
             modelBuilder.Entity<AccountDelete>()
-            .HasRequired(a => a.DeletedBy)
-            .WithMany()
-            .WillCascadeOnDelete(false);
+                .HasRequired(a => a.DeletedBy)
+                .WithMany()
+                .WillCascadeOnDelete(false);
 
+            modelBuilder.Entity<Certificate>()
+                .HasKey(c => c.Key);
+
+            modelBuilder.Entity<Certificate>()
+                .Property(c => c.Thumbprint)
+                .HasMaxLength(256)
+                .HasColumnType("varchar")
+                .IsRequired()
+                .HasColumnAnnotation(
+                    IndexAnnotation.AnnotationName,
+                    new IndexAnnotation(new[]
+                    {
+                        new IndexAttribute(CertificatesThumbprintIndex)
+                        {
+                            IsUnique = true,
+                        }
+                    }));
         }
 #pragma warning restore 618
     }

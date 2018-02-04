@@ -58,9 +58,10 @@ namespace NuGetGallery.Controllers
                 var model = ResultAssert.IsView<LogOnViewModel>(result, viewName: SignInViewName);
                 Assert.NotNull(model.SignIn);
                 Assert.NotNull(model.Register);
-                Assert.Equal(2, model.Providers.Count);
-                Assert.Equal("AzureActiveDirectory", model.Providers[0].ProviderName);
-                Assert.Equal("MicrosoftAccount", model.Providers[1].ProviderName);
+                Assert.Equal(3, model.Providers.Count);
+                Assert.Equal("AzureActiveDirectoryV2", model.Providers[0].ProviderName);
+                Assert.Equal("AzureActiveDirectory", model.Providers[1].ProviderName);
+                Assert.Equal("MicrosoftAccount", model.Providers[2].ProviderName);
             }
         }
 
@@ -296,7 +297,8 @@ namespace NuGetGallery.Controllers
                     .Completes()
                     .Verifiable();
                 GetMock<IMessageService>()
-                    .Setup(x => x.SendCredentialAddedNotice(authUser.User, externalCred))
+                    .Setup(x => x.SendCredentialAddedNotice(authUser.User, 
+                                                            It.Is<CredentialViewModel>(c => c.Type == CredentialTypes.ExternalPrefix + "MicrosoftAccount")))
                     .Verifiable();
 
                 var controller = GetController<AuthenticationController>();
@@ -364,7 +366,8 @@ namespace NuGetGallery.Controllers
                     .Verifiable();
 
                 GetMock<IMessageService>()
-                    .Setup(x => x.SendCredentialAddedNotice(authUser.User, externalCred))
+                    .Setup(x => x.SendCredentialAddedNotice(authUser.User,
+                                                            It.Is<CredentialViewModel>(c => c.Type == CredentialTypes.ExternalPrefix + providerUsedForLogin)))
                     .Verifiable();
 
                 EnableAllAuthenticators(Get<AuthenticationService>());

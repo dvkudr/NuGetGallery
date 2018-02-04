@@ -7,13 +7,16 @@ using System.Data.Entity;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using NuGetGallery.Areas.Admin;
+using NuGetGallery.Areas.Admin.Models;
+using NuGetGallery.Auditing;
 using NuGetGallery.Authentication;
 using NuGetGallery.Framework;
 using NuGetGallery.Security;
 using Xunit;
 using Moq;
 
-namespace NuGetGallery
+namespace NuGetGallery.Services
 {
     public class DeleteAccountServiceFacts
     {
@@ -157,6 +160,10 @@ namespace NuGetGallery
                 Assert.Null(testUser.EmailAddress);
                 Assert.Equal<int>(1, testableService.DeletedAccounts.Count());
                 Assert.Equal<string>(signature, testableService.DeletedAccounts.ElementAt(0).Signature);
+                Assert.Equal<int>(1, testableService.SupportRequests.Count);
+                Assert.Equal(1, testableService.AuditService.Records.Count);
+                var deleteRecord = testableService.AuditService.Records[0] as DeleteAccountAuditRecord;
+                Assert.True(deleteRecord != null);
             }
 
             private static User CreateTestData(ref PackageRegistration registration)
@@ -190,6 +197,8 @@ namespace NuGetGallery
             private ICollection<Package> _userPackages;
 
             public List<AccountDelete> DeletedAccounts = new List<AccountDelete>();
+            public List<Issue> SupportRequests = new List<Issue>();
+            public FakeAuditingService AuditService;
 
             public DeleteAccountTestService(User user, PackageRegistration userPackagesRegistration)
             {
@@ -199,6 +208,26 @@ namespace NuGetGallery
                 _user.SecurityPolicies.Add(_securityPolicy);
                 _userPackagesRegistration = userPackagesRegistration;
                 _userPackages = userPackagesRegistration.Packages;
+                SupportRequests.Add(new Issue()
+                {
+                    CreatedBy = user.Username,
+                    Key = 1,
+                    IssueTitle = Strings.AccountDelete_SupportRequestTitle,
+                    OwnerEmail = user.EmailAddress,
+                    IssueStatusId = IssueStatusKeys.New,
+                    HistoryEntries = new List<History>() { new History() { EditedBy = user.Username, IssueId = 1, Key = 1, IssueStatusId = IssueStatusKeys.New} }
+                });
+                SupportRequests.Add(new Issue()
+                {
+                    CreatedBy = $"{user.Username}_second",
+                    Key = 2,
+                    IssueTitle = "Second",
+                    OwnerEmail = "random",
+                    IssueStatusId = IssueStatusKeys.New,
+                    HistoryEntries = new List<History>() { new History() { EditedBy = $"{user.Username}_second", IssueId = 2, Key = 2, IssueStatusId = IssueStatusKeys.New } }
+                });
+
+                AuditService = new FakeAuditingService();
             }
 
             public DeleteAccountService GetDeleteAccountService()
@@ -210,7 +239,20 @@ namespace NuGetGallery
                     SetupPackageOwnershipManagementService().Object,
                     SetupReservedNamespaceService().Object,
                     SetupSecurityPolicyService().Object,
-                    new TestableAuthService());
+                    new TestableAuthService(),
+                    SetupSupportRequestService().Object,
+                    AuditService);
+            }
+
+            public class FakeAuditingService : IAuditingService
+            {
+                public List<AuditRecord> Records = new List<AuditRecord>();
+
+                public Task SaveAuditRecordAsync(AuditRecord record)
+                {
+                    Records.Add(record);
+                    return Task.FromResult(true);
+                }
             }
 
             private class TestableAuthService : AuthenticationService
@@ -235,7 +277,7 @@ namespace NuGetGallery
             {
                 var mockContext = new Mock<IEntitiesContext>();
                 var dbContext = new Mock<DbContext>();
-                mockContext.Setup(m => m.GetDatabase()).Returns(dbContext.Object.Database);
+                mockContext.Setup(m => m.GetDatabase()).Returns(new DatabaseWrapper(dbContext.Object.Database));
                 return mockContext;
             }
 
@@ -276,12 +318,24 @@ namespace NuGetGallery
             private Mock<IPackageService> SetupPackageService()
             {
                 var packageService = new Mock<IPackageService>();
-                packageService.Setup(m => m.FindPackagesByAnyMatchingOwner(_user, true)).Returns(_userPackages);
+                packageService.Setup(m => m.FindPackagesByAnyMatchingOwner(_user, true, It.IsAny<bool>())).Returns(_userPackages);
                 //the .Returns(Task.CompletedTask) to avoid NullRef exception by the Mock infrastructure when invoking async operations
                 packageService.Setup(m => m.MarkPackageUnlistedAsync(It.IsAny<Package>(), true))
                               .Returns(Task.CompletedTask)
                               .Callback<Package, bool>((package, commit) => { package.Listed = false; });
                 return packageService;
+            }
+             
+            private Mock<ISupportRequestService> SetupSupportRequestService()
+            {
+                var supportService = new Mock<ISupportRequestService>();
+                supportService.Setup(m => m.GetIssues(null, null, null, null)).Returns(SupportRequests);
+                var issue = SupportRequests.Where(i => string.Equals(i.CreatedBy, _user.Username)).FirstOrDefault();
+                supportService.Setup(m => m.DeleteSupportRequestsAsync(_user.Username))
+                              .Returns(Task.FromResult<bool>(true))
+                              .Callback( () => SupportRequests.Remove(issue));
+
+                return supportService;
             }
 
             private Mock<IPackageOwnershipManagementService> SetupPackageOwnershipManagementService()
@@ -297,7 +351,6 @@ namespace NuGetGallery
                                                             );
                 return packageOwnershipManagementService;
             }
-
         }
     }
 }

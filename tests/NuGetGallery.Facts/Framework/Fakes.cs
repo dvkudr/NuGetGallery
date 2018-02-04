@@ -28,6 +28,8 @@ namespace NuGetGallery.Framework
             var key = 39;
             var credentialBuilder = new CredentialBuilder();
 
+            ApiKeyV3PlaintextValue = "889e180e-335c-491a-ac26-e83c4bd31d87";
+
             User = new User("testUser")
             {
                 Key = key++,
@@ -39,10 +41,15 @@ namespace NuGetGallery.Framework
                         ExpirationForApiKeyV1),
                     TestCredentialHelper.CreateV2ApiKey(Guid.Parse("779e180e-335c-491a-ac26-e83c4bd31d87"),
                         ExpirationForApiKeyV1).WithDefaultScopes(),
+                    TestCredentialHelper.CreateV3ApiKey(Guid.Parse(ApiKeyV3PlaintextValue), 
+                        ExpirationForApiKeyV1).WithDefaultScopes(),
+                    TestCredentialHelper.CreateV4ApiKey(null, out string apiKeyV4PlaintextValue).WithDefaultScopes(),
                     TestCredentialHelper.CreateV2VerificationApiKey(Guid.Parse("b0c51551-823f-4701-8496-43980b4b3913")),
                     TestCredentialHelper.CreateExternalCredential("abc")
                 }
             };
+
+            ApiKeyV4PlaintextValue = apiKeyV4PlaintextValue;
 
             Organization = new Organization("testOrganization")
             {
@@ -140,6 +147,9 @@ namespace NuGetGallery.Framework
 
         public PackageRegistration Package { get; }
 
+        public string ApiKeyV3PlaintextValue { get; }
+        public string ApiKeyV4PlaintextValue { get; }
+
         public User CreateUser(string userName, params Credential[] credentials)
         {
             var user = new User(userName)
@@ -156,6 +166,11 @@ namespace NuGetGallery.Framework
 
         public static ClaimsPrincipal ToPrincipal(User user)
         {
+            if (user == null)
+            {
+                return null;
+            }
+
             ClaimsIdentity identity = new ClaimsIdentity(
                 claims: Enumerable.Concat(new[] {
                             new Claim(ClaimsIdentity.DefaultNameClaimType, user.Username),

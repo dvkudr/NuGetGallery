@@ -20,6 +20,7 @@ namespace NuGetGallery.FunctionalTests
         private static string _externalPrivacyPolicyUrl;
         private static string _externalTermsOfUseUrl;
         private static string _externalTrademarksUrl;
+        private static string _testAccountEmail;
         private static string _testAccountName;
         private static string _testAccountPassword;
         private static string _testAccountApiKey;
@@ -29,6 +30,7 @@ namespace NuGetGallery.FunctionalTests
         private static string _testEmailServerHost;
         private static List<string> _trustedHttpsCertificates;
         private static bool? _defaultSecurityPoliciesEnforced;
+        private static bool? _testPackageLock;
 
         /// <summary>
         /// The environment against which the test has to be run. The value would be picked from env variable.
@@ -210,6 +212,21 @@ namespace NuGetGallery.FunctionalTests
         /// <summary>
         /// The test nuget account name to be used for functional tests.
         /// </summary>
+        public static string TestAccountEmail
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_testAccountEmail))
+                {
+                    _testAccountEmail = Environment.GetEnvironmentVariable("TestAccountEmail");
+                }
+                return _testAccountEmail;
+            }
+        }
+
+        /// <summary>
+        /// The test nuget account name to be used for functional tests.
+        /// </summary>
         public static string TestAccountName
         {
             get
@@ -328,6 +345,28 @@ namespace NuGetGallery.FunctionalTests
                 }
 
                 return _defaultSecurityPoliciesEnforced.Value;
+            }
+        }
+
+        public static bool TestPackageLock
+        {
+            get
+            {
+                if (!_testPackageLock.HasValue)
+                {
+                    // Try to get the setting from EnvironmentVariable. If fail, fallback to false
+                    bool temp;
+                    if (bool.TryParse(Environment.GetEnvironmentVariable("TestPackageLock"), out temp))
+                    {
+                        _testPackageLock = temp;
+                    }
+                    else
+                    {
+                        _testPackageLock = false;
+                    }
+                }
+
+                return _testPackageLock.Value;
             }
         }
 

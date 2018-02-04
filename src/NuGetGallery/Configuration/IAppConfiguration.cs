@@ -2,11 +2,11 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Net.Mail;
+using NuGetGallery.Services;
 
 namespace NuGetGallery.Configuration
 {
-    public interface IAppConfiguration
+    public interface IAppConfiguration : ICoreMessageServiceConfiguration
     {
         /// <summary>
         /// Gets the location in which the Lucene Index is stored
@@ -94,6 +94,11 @@ namespace NuGetGallery.Configuration
         bool BlockingAsynchronousPackageValidationEnabled { get; set; }
 
         /// <summary>
+        /// Whitelist of domains for which the Organizations feature is enabled.
+        /// </summary>
+        string[] OrganizationsEnabledForDomains { get; set; }
+
+        /// <summary>
         /// Gets the URI to the search service
         /// </summary>
         Uri ServiceDiscoveryUri { get; set; }
@@ -132,16 +137,6 @@ namespace NuGetGallery.Configuration
         /// Gets the site brand name i.e. 'NuGet Gallery' by default. Cobranding feature.
         /// </summary>
         string Brand { get; set; }
-
-        /// <summary>
-        /// Gets the gallery owner name and email address
-        /// </summary>
-        MailAddress GalleryOwner { get; set; }
-
-        /// <summary>
-        /// Gets the gallery e-mail from name and email address
-        /// </summary>
-        MailAddress GalleryNoReplyAddress { get; set; }
 
         /// <summary>
         /// Gets the storage mechanism used by this instance of the gallery
@@ -278,7 +273,8 @@ namespace NuGetGallery.Configuration
         string ExternalBrandingUrl { get; set; }
 
         /// <summary>
-        /// Gets/sets a string that is brand string to display in the footer
+        /// Gets/sets a string that is brand string to display in the footer, this also
+        /// accepts a single {0} string format token which is replaced by the UTC year
         /// </summary>
         string ExternalBrandingMessage { get; set; }
 

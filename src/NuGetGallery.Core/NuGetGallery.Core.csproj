@@ -36,6 +36,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="AnglicanGeek.MarkdownMailer, Version=1.2.0.0, Culture=neutral, PublicKeyToken=f32adc156e6c65f2, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\AnglicanGeek.MarkdownMailer.StrongName.1.2.0\lib\net40\AnglicanGeek.MarkdownMailer.dll</HintPath>
+    </Reference>
     <Reference Include="Elmah, Version=1.2.14706.0, Culture=neutral, PublicKeyToken=57eac04b2e0f138e, processorArchitecture=MSIL">
       <HintPath>..\..\packages\elmah.corelibrary.strongname.1.2.2\lib\Elmah.dll</HintPath>
       <Private>True</Private>
@@ -49,6 +52,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\entityframework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
       <Private>True</Private>
+    </Reference>
+    <Reference Include="MarkdownSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=db5eab8f88aa1509, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\MarkdownSharp.StrongName.1.13.0\lib\35\MarkdownSharp.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Azure.KeyVault.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Microsoft.Azure.KeyVault.Core.1.0.0\lib\net40\Microsoft.Azure.KeyVault.Core.dll</HintPath>
@@ -119,6 +125,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Auditing\AggregateAuditingService.cs" />
+    <Compile Include="Auditing\AuditedDeleteAccountAction.cs" />
+    <Compile Include="Auditing\Obfuscation\ObfuscateAttribute.cs" />
+    <Compile Include="Auditing\Obfuscation\ObfuscationType.cs" />
+    <Compile Include="Auditing\Obfuscation\ObfuscatorJsonConverter.cs" />
     <Compile Include="Auditing\AuditedEntities\AuditedPackage.cs" />
     <Compile Include="Auditing\AuditedEntities\AuditedPackageIdentifier.cs" />
     <Compile Include="Auditing\AuditedAuthenticatedOperationAction.cs" />
@@ -131,6 +141,8 @@
     <Compile Include="Auditing\AuditingService.cs" />
     <Compile Include="Auditing\AuditRecord.cs" />
     <Compile Include="Auditing\FailedAuthenticatedOperationAuditRecord.cs" />
+    <Compile Include="Auditing\Obfuscation\Obfuscator.cs" />
+    <Compile Include="Auditing\DeleteAccountAuditRecord.cs" />
     <Compile Include="Auditing\ReservedNamespaceAuditRecord.cs" />
     <Compile Include="Auditing\UserSecurityPolicyAuditRecord.cs" />
     <Compile Include="Auditing\FileSystemAuditingService.cs" />
@@ -157,12 +169,17 @@
     <Compile Include="Diagnostics\IDiagnosticsService.cs" />
     <Compile Include="Diagnostics\IDiagnosticsSource.cs" />
     <Compile Include="DisposableAction.cs" />
+    <Compile Include="Entities\Certificate.cs" />
     <Compile Include="Entities\Credential.cs" />
     <Compile Include="Entities\CuratedFeed.cs" />
     <Compile Include="Entities\CuratedPackage.cs" />
+    <Compile Include="Entities\DatabaseWrapper.cs" />
+    <Compile Include="Entities\IDatabase.cs" />
     <Compile Include="Entities\Membership.cs" />
     <Compile Include="Entities\Organization.cs" />
     <Compile Include="Entities\AccountDelete.cs" />
+    <Compile Include="Entities\MembershipRequest.cs" />
+    <Compile Include="Entities\OrganizationMigrationRequest.cs" />
     <Compile Include="Entities\PackageDelete.cs" />
     <Compile Include="Entities\EmailMessage.cs" />
     <Compile Include="Entities\EntitiesConfiguration.cs" />
@@ -195,8 +212,11 @@
     <Compile Include="Entities\SuspendDbExecutionStrategy.cs" />
     <Compile Include="Entities\UserSecurityPolicy.cs" />
     <Compile Include="Entities\User.cs" />
+    <Compile Include="Extensions\EntitiesContextExtensions.cs" />
+    <Compile Include="Extensions\UserExtensionsCore.cs" />
     <Compile Include="ICloudStorageStatusDependency.cs" />
     <Compile Include="Infrastructure\AzureEntityList.cs" />
+    <Compile Include="Infrastructure\ElmahException.cs" />
     <Compile Include="Infrastructure\TableErrorLog.cs" />
     <Compile Include="Authentication\NuGetClaims.cs" />
     <Compile Include="PackageReaderCoreExtensions.cs" />
@@ -218,10 +238,13 @@
     <Compile Include="Services\CloudBlobCoreFileStorageService.cs" />
     <Compile Include="Services\CloudBlobWrapper.cs" />
     <Compile Include="Services\CloudFileReference.cs" />
+    <Compile Include="Services\CoreMessageService.cs" />
     <Compile Include="Services\CorePackageFileService.cs" />
     <Compile Include="Services\CorePackageService.cs" />
     <Compile Include="Services\ICloudBlobClient.cs" />
     <Compile Include="Services\ICloudBlobContainer.cs" />
+    <Compile Include="Services\ICoreMessageService.cs" />
+    <Compile Include="Services\ICoreMessageServiceConfiguration.cs" />
     <Compile Include="Services\ICorePackageFileService.cs" />
     <Compile Include="Services\ICorePackageService.cs" />
     <Compile Include="Services\IFileReference.cs" />
@@ -249,6 +272,9 @@
       <LastGenOutput>CoreStrings.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Infrastructure\MigrateUserToOrganization.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

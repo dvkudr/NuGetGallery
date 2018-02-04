@@ -10,11 +10,12 @@ namespace NuGetGallery
     {
         public SelectList VersionSelectList { get; set; }
 
-        public EditPackageVersionRequest Edit { get; set; }
+        public EditPackageVersionReadMeRequest Edit { get; set; }
 
         public string PackageId { get; set; }
         public string PackageTitle { get; set; }
         public string Version { get; set; }
         public IList<Package> PackageVersions { get; set; }
+        public bool IsLocked { get; set; }
     }
 }

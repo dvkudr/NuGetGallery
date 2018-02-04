@@ -225,7 +225,7 @@ var AsyncFileUploadManager = new function () {
             $(reportContainerElement).attr("id", "verify-package-block");
             $(reportContainerElement).attr("class", "collapse in");
             $(reportContainerElement).attr("aria-expanded", "true");
-            $(reportContainerElement).attr("data-bind", "template: { name: 'edit-metadata-template', data: data }");
+            $(reportContainerElement).attr("data-bind", "template: { name: 'verify-metadata-template', data: data }");
             $("#verify-package-container").append(reportContainerElement);
             ko.applyBindings({ data: model }, reportContainerElement);
 
@@ -263,7 +263,7 @@ var AsyncFileUploadManager = new function () {
             $("#verify-collapser-container").removeClass("hidden");
             $("#submit-collapser-container").removeClass("hidden");
 
-            window.nuget.configureExpanderHeading("verify-package-form");
+            window.nuget.configureExpanderHeading("verify-package-section");
             window.nuget.configureExpanderHeading("submit-package-form");
         }
 
